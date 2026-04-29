@@ -20,9 +20,10 @@ FastAPI api service :8000
         +--> fallback_answer_node
 
 Host ports:
-  FastAPI  -> http://localhost:8000
-  ChromaDB -> http://localhost:8001
-  Ollama   -> http://localhost:11434
+FastAPI  -> http://localhost:8000
+Web UI   -> http://localhost:8000
+ChromaDB -> http://localhost:8001
+Ollama   -> http://localhost:11434
 ```
 
 ## Technologies
@@ -55,6 +56,18 @@ The API container talks to Ollama and ChromaDB by Docker Compose service name:
 
 - `http://ollama:11434`
 - `chromadb:8000`
+
+Open the web UI:
+
+```text
+http://localhost:8000
+```
+
+FastAPI's OpenAPI documentation is available at:
+
+```text
+http://localhost:8000/docs
+```
 
 ## Health Check
 
@@ -99,6 +112,8 @@ Example response:
 ```
 
 ## Ask Questions
+
+Use the web UI at `http://localhost:8000`, or call the API directly:
 
 ```bash
 curl -X POST http://localhost:8000/chat \

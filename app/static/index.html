@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Enterprise RAG Agent</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Enterprise RAG Agent</p>
+          <h1>Internal Knowledge Chat</h1>
+        </div>
+        <div class="status-strip" aria-live="polite">
+          <span class="service-pill" id="api-status">API</span>
+          <span class="service-pill" id="ollama-status">Ollama</span>
+          <span class="service-pill" id="chroma-status">ChromaDB</span>
+        </div>
+      </header>
+
+      <section class="workspace" aria-label="RAG agent workspace">
+        <section class="conversation" aria-label="Conversation">
+          <div class="conversation-log" id="conversation-log">
+            <article class="message assistant">
+              <div class="message-label">Agent</div>
+              <p>Ready.</p>
+            </article>
+          </div>
+
+          <form class="composer" id="chat-form">
+            <label class="sr-only" for="question">Question</label>
+            <textarea
+              id="question"
+              name="question"
+              rows="3"
+              placeholder="How can I identify overfitting in a machine learning model?"
+              required
+            ></textarea>
+            <button type="submit" id="ask-button">
+              <span aria-hidden="true">&gt;</span>
+              Ask
+            </button>
+          </form>
+        </section>
+
+        <aside class="side-panel" aria-label="Document operations">
+          <section class="panel-section">
+            <div class="section-heading">
+              <h2>Documents</h2>
+              <button type="button" id="ingest-button">
+                <span aria-hidden="true">+</span>
+                Ingest
+              </button>
+            </div>
+            <div class="metric-grid">
+              <div class="metric">
+                <span class="metric-label">Files</span>
+                <strong id="files-count">-</strong>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Chunks</span>
+                <strong id="chunks-count">-</strong>
+              </div>
+            </div>
+            <p class="operation-status" id="operation-status">Idle</p>
+          </section>
+
+          <section class="panel-section">
+            <h2>Sources</h2>
+            <ul class="sources-list" id="sources-list">
+              <li>No sources yet</li>
+            </ul>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
