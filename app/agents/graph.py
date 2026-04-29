@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import string
 from dataclasses import dataclass
 from typing import Any
 
@@ -11,6 +12,28 @@ from app.agents.prompts import FALLBACK_ANSWER, build_answer_prompt
 from app.agents.state import AgentState
 from app.services.ollama_client import OllamaClient
 from app.services.retrieval_service import RetrievalService, RetrievedChunk
+
+CONVERSATIONAL_EXACT = {
+    "hello",
+    "hello there",
+    "hey",
+    "hey there",
+    "hi",
+    "hi there",
+    "help",
+    "thank you",
+    "thanks",
+}
+
+CONVERSATIONAL_PROMPTS = (
+    "are you online",
+    "are you running",
+    "are you there",
+    "are you working",
+    "can you help",
+    "what can you do",
+    "who are you",
+)
 
 
 @dataclass(frozen=True)
@@ -75,21 +98,7 @@ class RagAgent:
 
     def classify_question_node(self, state: AgentState) -> dict[str, bool]:
         """Decide whether the question should use document retrieval."""
-        question = state["question"].strip().lower()
-        no_retrieval_exact = {
-            "hello",
-            "hi",
-            "hey",
-            "help",
-        }
-        no_retrieval_prefixes = (
-            "who are you",
-            "what can you do",
-        )
-        needs_retrieval = not (
-            question in no_retrieval_exact
-            or any(question.startswith(phrase) for phrase in no_retrieval_prefixes)
-        )
+        needs_retrieval = not self._is_conversational_question(state["question"])
         return {"needs_retrieval": needs_retrieval}
 
     def retrieve_context_node(self, state: AgentState) -> dict[str, object]:
@@ -127,3 +136,24 @@ class RagAgent:
                 f"[Context {index}]\nSource: {chunk.source}\nContent: {chunk.text}"
             )
         return "\n\n".join(context_blocks)
+
+    @staticmethod
+    def _is_conversational_question(question: str) -> bool:
+        normalized = _normalize_question(question)
+        if normalized in CONVERSATIONAL_EXACT:
+            return True
+        if any(normalized.startswith(prompt) for prompt in CONVERSATIONAL_PROMPTS):
+            return True
+
+        greeting_prefixes = ("hello ", "hey ", "hi ")
+        for greeting in greeting_prefixes:
+            if normalized.startswith(greeting):
+                remainder = normalized.removeprefix(greeting)
+                return any(remainder.startswith(prompt) for prompt in CONVERSATIONAL_PROMPTS)
+
+        return False
+
+
+def _normalize_question(question: str) -> str:
+    translation = str.maketrans({character: " " for character in string.punctuation})
+    return " ".join(question.lower().translate(translation).split())
