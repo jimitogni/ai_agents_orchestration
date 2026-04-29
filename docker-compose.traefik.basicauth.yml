@@ -1,0 +1,6 @@
+services:
+  api:
+    labels:
+      traefik.http.routers.enterprise-rag-agent.middlewares: enterprise-rag-agent-auth
+      traefik.http.middlewares.enterprise-rag-agent-auth.basicauth.users: "${TRAEFIK_BASIC_AUTH_USERS}"
+

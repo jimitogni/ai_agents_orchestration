@@ -1,0 +1,52 @@
+name: enterprise-rag-agent
+
+services:
+  api:
+    build: .
+    ports:
+      - "${API_HOST_PORT:-8010}:8000"
+    environment:
+      APP_ENVIRONMENT: homelab
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DOCS_PATH: /app/data/docs
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
+      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-120}
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: 8000
+      CHROMA_COLLECTION_NAME: ${CHROMA_COLLECTION_NAME:-internal_docs}
+      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-sentence-transformers/all-MiniLM-L6-v2}
+      RETRIEVAL_TOP_K: ${RETRIEVAL_TOP_K:-4}
+      CHUNK_SIZE: ${CHUNK_SIZE:-900}
+      CHUNK_OVERLAP: ${CHUNK_OVERLAP:-120}
+    volumes:
+      - ./data/docs:/app/data/docs:ro
+    depends_on:
+      - ollama
+      - chromadb
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "127.0.0.1:${OLLAMA_HOST_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "127.0.0.1:${CHROMA_HOST_PORT:-8011}:8000"
+    environment:
+      IS_PERSISTENT: "TRUE"
+      PERSIST_DIRECTORY: /chroma/chroma
+      ANONYMIZED_TELEMETRY: "FALSE"
+    volumes:
+      - chroma_data:/chroma/chroma
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
+  chroma_data:
+

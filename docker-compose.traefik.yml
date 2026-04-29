@@ -1,0 +1,19 @@
+services:
+  api:
+    ports: !reset []
+    networks:
+      - default
+      - traefik_proxy
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "${TRAEFIK_NETWORK:-traefik_proxy}"
+      traefik.http.routers.enterprise-rag-agent.rule: "Host(`${RAG_AGENT_HOST}`)"
+      traefik.http.routers.enterprise-rag-agent.entrypoints: "${TRAEFIK_ENTRYPOINT:-websecure}"
+      traefik.http.routers.enterprise-rag-agent.tls: "true"
+      traefik.http.routers.enterprise-rag-agent.tls.certresolver: "${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
+      traefik.http.services.enterprise-rag-agent.loadbalancer.server.port: "8000"
+
+networks:
+  traefik_proxy:
+    external: true
+    name: "${TRAEFIK_NETWORK:-traefik_proxy}"

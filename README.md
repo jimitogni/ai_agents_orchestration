@@ -69,6 +69,112 @@ FastAPI's OpenAPI documentation is available at:
 http://localhost:8000/docs
 ```
 
+## Run On A Home Lab Server
+
+Use the standalone homelab compose file when another service already owns host port `8001`.
+It maps:
+
+- Web UI/API: `http://<server-ip>:8010`
+- ChromaDB: `127.0.0.1:8011` on the server only
+- Ollama: `127.0.0.1:11434` on the server only
+
+On the server:
+
+```bash
+git clone <your-repo-url> enterprise-rag-agent
+cd enterprise-rag-agent
+cp .env.homelab.example .env
+docker compose --env-file .env -f docker-compose.homelab.yml up -d --build
+docker compose --env-file .env -f docker-compose.homelab.yml exec ollama ollama pull llama3.2:3b
+curl -X POST http://localhost:8010/ingest
+```
+
+Open the UI from another machine on your LAN:
+
+```text
+http://<server-ip>:8010
+```
+
+If `8010`, `8011`, or `11434` are already used on the server, change the matching value in `.env`.
+
+## Expose Through Traefik
+
+Yes, use Traefik if you want public HTTPS access. Do not expose this app directly to the
+internet without authentication; it currently has no login and no rate limiting.
+
+The Traefik overlay only exposes the `api` service and removes the direct API host port.
+ChromaDB and Ollama stay private.
+
+First, find the Docker network used by your Traefik container:
+
+```bash
+docker inspect healthcare_traefik \
+  --format '{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}'
+```
+
+Edit `.env`:
+
+```env
+RAG_AGENT_HOST=rag.your-domain.com
+TRAEFIK_NETWORK=<network-from-docker-inspect>
+TRAEFIK_ENTRYPOINT=websecure
+TRAEFIK_CERT_RESOLVER=letsencrypt
+```
+
+Create a DNS `A` record pointing `rag.your-domain.com` to your public IP, and make sure
+ports `80` and `443` reach the Traefik server.
+
+Start with the Traefik overlay:
+
+```bash
+docker compose --env-file .env \
+  -f docker-compose.homelab.yml \
+  -f docker-compose.traefik.yml \
+  up -d --build
+```
+
+For public internet exposure, add Traefik Basic Auth. Generate a password hash on the
+server:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y apache2-utils
+htpasswd -nbB admin 'choose-a-strong-password' | sed -e 's/\$/\$\$/g'
+```
+
+Put the output in `.env`:
+
+```env
+TRAEFIK_BASIC_AUTH_USERS=admin:$$2y$$...
+```
+
+Then include the Basic Auth overlay:
+
+```bash
+docker compose --env-file .env \
+  -f docker-compose.homelab.yml \
+  -f docker-compose.traefik.yml \
+  -f docker-compose.traefik.basicauth.yml \
+  up -d --build
+```
+
+Then pull the model and ingest documents:
+
+```bash
+docker compose --env-file .env \
+  -f docker-compose.homelab.yml \
+  -f docker-compose.traefik.yml \
+  exec ollama ollama pull llama3.2:3b
+
+curl -X POST https://rag.your-domain.com/ingest
+```
+
+Open:
+
+```text
+https://rag.your-domain.com
+```
+
 ## Health Check
 
 ```bash
