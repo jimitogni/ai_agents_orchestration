@@ -1,0 +1,47 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENVIRONMENT: docker
+      LOG_LEVEL: INFO
+      DOCS_PATH: /app/data/docs
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
+      OLLAMA_TIMEOUT_SECONDS: 120
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: 8000
+      CHROMA_COLLECTION_NAME: internal_docs
+      EMBEDDING_MODEL_NAME: sentence-transformers/all-MiniLM-L6-v2
+      RETRIEVAL_TOP_K: 4
+      CHUNK_SIZE: 900
+      CHUNK_OVERLAP: 120
+    volumes:
+      - ./data/docs:/app/data/docs:ro
+    depends_on:
+      - ollama
+      - chromadb
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"
+    environment:
+      IS_PERSISTENT: "TRUE"
+      PERSIST_DIRECTORY: /chroma/chroma
+      ANONYMIZED_TELEMETRY: "FALSE"
+    volumes:
+      - chroma_data:/chroma/chroma
+
+volumes:
+  ollama_data:
+  chroma_data:
+
