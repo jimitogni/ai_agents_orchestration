@@ -175,6 +175,84 @@ Open:
 https://rag.your-domain.com
 ```
 
+## Expose Through DuckDNS And A Nonstandard HTTP Port
+
+If your ISP blocks public ports `80` and `443`, and your router forwards public
+`8888` to `192.168.0.10:80`, use the HTTP Traefik overlay instead of the HTTPS one.
+
+Recommended setup:
+
+- Public URL: `http://rag-jimitogni.duckdns.org:8888`
+- Router rule: public `8888` -> `192.168.0.10:80`
+- Traefik entrypoint: `web`
+- RAG API container port: private Docker port `8000`
+- ChromaDB and Ollama: private
+
+Create a second DuckDNS subdomain for this app if possible, for example:
+
+```text
+rag-jimitogni.duckdns.org
+```
+
+This lets Traefik route by hostname without conflicting with your existing app at
+`jimitogni.duckdns.org:8888`.
+
+On the server, find Traefik's Docker network:
+
+```bash
+docker inspect healthcare_traefik \
+  --format '{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}'
+```
+
+Create `.env`:
+
+```bash
+cp .env.homelab.example .env
+nano .env
+```
+
+Use values like:
+
+```env
+RAG_AGENT_HOST=rag-jimitogni.duckdns.org
+TRAEFIK_NETWORK=healthcare_default
+TRAEFIK_HTTP_ENTRYPOINT=web
+OLLAMA_MODEL=llama3.2:3b
+```
+
+Replace `healthcare_default` with the real Traefik network from `docker inspect`.
+
+Start the stack:
+
+```bash
+docker compose --env-file .env \
+  -f docker-compose.homelab.yml \
+  -f docker-compose.traefik.http.yml \
+  -f docker-compose.traefik.basicauth.yml \
+  up -d --build
+```
+
+Pull the model:
+
+```bash
+docker compose --env-file .env \
+  -f docker-compose.homelab.yml \
+  -f docker-compose.traefik.http.yml \
+  -f docker-compose.traefik.basicauth.yml \
+  exec ollama ollama pull llama3.2:3b
+```
+
+Open:
+
+```text
+http://rag-jimitogni.duckdns.org:8888
+```
+
+Important security note: Basic Auth over plain HTTP protects against casual access but
+does not encrypt the password or chat traffic. For real internet exposure, prefer a VPN,
+Tailscale, Cloudflare Tunnel, or HTTPS on a reachable external port with DNS-based
+certificate validation.
+
 ## Health Check
 
 ```bash
